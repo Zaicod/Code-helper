@@ -1,0 +1,8 @@
+# 核心依赖
+hello-agents[all]>=0.2.7
+# 可视化（如果需要）
+matplotlib>=3.7.0
+plotly>=5.14.0
+# Web框架（如果需要）
+fastapi>=0.109.0
+uvicorn>=0.27.0
