@@ -2,6 +2,7 @@ from tools.code_reader import read_code
 from tools.syntax_checker import analyze_code_structure
 from tools.rule_checker import check_code_rules
 from tools.style_checker import run_ruff
+from tools.complexity_checker import analyze_complexity
 
 def main():
 	file_path = "data/sample_code.py"
@@ -73,6 +74,24 @@ def main():
             f"Line {issue['line']}:{issue['column']} | "
             f"{issue['rule']} | "
             f"{issue['message']}"
+		)
+
+	print("\n" + "=" * 50)
+	print("圈复杂度分析")
+	print("=" * 50)
+
+	#radon算函数复杂度
+	complexity_results = analyze_complexity(code)
+
+	if not complexity_results:
+		print("未检测到函数或方法。")
+
+	for item in complexity_results:
+		print(
+			f"{item['name']} | "
+			f"Line {item['line']} | "
+			f"Complexity: {item['complexity']} | "
+			f"Grade: {item['type']}"
 		)
 
 
