@@ -1,14 +1,15 @@
 import os
+import sys
 
 
 def calculate(a, b):
-    result = a + b
-    return result
+    unused_variable = 100
+    return a + b
 
 
-def divide(a, b):
-    return a / b
+def hello():
+    x = 10
+    print("hello")
 
 
-print(calculate(10, 20))
-print(divide(10, 0))
+calculate(1, 2)
