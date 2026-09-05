@@ -8,6 +8,7 @@ from tools.complexity_checker import (
 )
 
 from core.aggregator import aggregate_issues
+from agents.review_agent import review_code_with_llm
 
 
 def main():
@@ -17,7 +18,9 @@ def main():
     code = read_code(file_path)
 
     ast_issues = check_code_rules(code)
+
     ruff_issues = run_ruff(file_path)
+
     bandit_issues = run_bandit(file_path)
 
     complexity_results = analyze_complexity(code)
@@ -38,7 +41,7 @@ def main():
     )
 
     print("=" * 60)
-    print("代码审查汇总")
+    print("静态分析汇总")
     print("=" * 60)
 
     print(
@@ -46,47 +49,54 @@ def main():
         f"{review_result['total']}"
     )
 
-    counts = review_result[
-        "severity_count"
-    ]
-
-    print(
-        f"Critical: {counts['critical']} | "
-        f"High: {counts['high']} | "
-        f"Medium: {counts['medium']} | "
-        f"Low: {counts['low']} | "
-        f"Info: {counts['info']}"
+    llm_review = review_code_with_llm(
+    code,
+    review_result
     )
 
     print("\n" + "=" * 60)
-    print("问题详情")
+    print("Qwen 综合代码审查")
     print("=" * 60)
 
-    for issue in review_result["issues"]:
+    print(
+        f"Overall Score: "
+        f"{llm_review.overall_score}/100"
+    )
+
+    print("\nSummary:")
+
+    print(
+        llm_review.summary
+    )
+
+    print("\nLLM Findings:")
+
+    if not llm_review.issues:
+        print(
+            "Qwen 未发现额外问题。"
+        )
+
+    for issue in llm_review.issues:
+
+        print("-" * 60)
 
         print(
             f"[{issue.severity.upper()}] "
-            f"{issue.source} | "
             f"{issue.category} | "
             f"Line {issue.line}"
         )
 
         print(
-            f"Rule: {issue.rule}"
+            f"Problem: {issue.problem}"
         )
 
         print(
-            f"Problem: {issue.message}"
+            f"Reason: {issue.reason}"
         )
 
-        if issue.suggestion:
-            print(
-                f"Suggestion: "
-                f"{issue.suggestion}"
-            )
-
-        print("-" * 60)
-
+        print(
+            f"Suggestion: {issue.suggestion}"
+        )
 
 if __name__ == "__main__":
     main()
