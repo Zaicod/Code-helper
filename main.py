@@ -3,6 +3,7 @@ from tools.syntax_checker import analyze_code_structure
 from tools.rule_checker import check_code_rules
 from tools.style_checker import run_ruff
 from tools.complexity_checker import analyze_complexity
+from tools.security_checker import run_bandit
 
 def main():
 	file_path = "data/sample_code.py"
@@ -92,6 +93,26 @@ def main():
 			f"Line {item['line']} | "
 			f"Complexity: {item['complexity']} | "
 			f"Grade: {item['type']}"
+		)
+
+	#Radon
+	bandit_issues = run_bandit(file_path)
+
+	print("\n" + "=" * 50)
+	print("Bandit 安全分析")
+	print("=" * 50)
+
+	if not bandit_issues:
+		print("Bandit 未发现安全问题")
+
+	for issue in bandit_issues:
+		print(
+			f"[{issue['severity'].upper()}] "
+			f"Line {issue['line']} | "
+			f"{issue['rule']} | "
+			f"{issue['message']} | "
+			f"Confidence: "
+			f"{issue['confidence'].upper()}"
 		)
 
 
