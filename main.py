@@ -7,6 +7,8 @@ from tools.complexity_checker import (
     complexity_to_issues
 )
 
+from core.aggregator import aggregate_issues
+
 
 def main():
 
@@ -15,9 +17,7 @@ def main():
     code = read_code(file_path)
 
     ast_issues = check_code_rules(code)
-
     ruff_issues = run_ruff(file_path)
-
     bandit_issues = run_bandit(file_path)
 
     complexity_results = analyze_complexity(code)
@@ -33,27 +33,42 @@ def main():
         + complexity_issues
     )
 
+    review_result = aggregate_issues(
+        all_issues
+    )
+
     print("=" * 60)
-    print("统一代码审查结果")
+    print("代码审查汇总")
     print("=" * 60)
 
-    if not all_issues:
-        print("未发现问题。")
-        return
+    print(
+        f"Total Issues: "
+        f"{review_result['total']}"
+    )
 
-    for issue in all_issues:
+    counts = review_result[
+        "severity_count"
+    ]
 
-        location = (
-            f"Line {issue.line}"
-            if issue.line is not None
-            else "Unknown line"
-        )
+    print(
+        f"Critical: {counts['critical']} | "
+        f"High: {counts['high']} | "
+        f"Medium: {counts['medium']} | "
+        f"Low: {counts['low']} | "
+        f"Info: {counts['info']}"
+    )
+
+    print("\n" + "=" * 60)
+    print("问题详情")
+    print("=" * 60)
+
+    for issue in review_result["issues"]:
 
         print(
             f"[{issue.severity.upper()}] "
             f"{issue.source} | "
             f"{issue.category} | "
-            f"{location}"
+            f"Line {issue.line}"
         )
 
         print(
@@ -66,7 +81,8 @@ def main():
 
         if issue.suggestion:
             print(
-                f"Suggestion: {issue.suggestion}"
+                f"Suggestion: "
+                f"{issue.suggestion}"
             )
 
         print("-" * 60)
