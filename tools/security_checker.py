@@ -1,6 +1,7 @@
 import json
 import subprocess
 import sys
+from core.models import ReviewIssue
 
 def run_bandit(file_path: str) -> list:
     """
@@ -46,20 +47,18 @@ def run_bandit(file_path: str) -> list:
     issues = []
 
     for item in bandit_result.get("result",[]):
-        issues.append({
-            "type": "security",
-             "source": "bandit",
-            "rule": item.get("test_id"),
-            "severity": item.get(
-                "issue_severity",
-                "LOW"
-            ).lower(),
-            "line": item.get("line_number"),
-            "column": None,
-            "message": item.get("issue_text"),
-            "confidence": item.get(
-                "issue_confidence",
-                "UNKNOWN"
-            ).lower()
-        })
+        issues.append(
+            ReviewIssue(
+                source="bandit",
+                category="security",
+                rule=item.get("test_id"),
+                severity=item.get(
+                    "issue_severity",
+                    "LOW"
+                ).lower(),
+                line=item.get("line_number"),
+                column=None,
+                message=item.get("issue_text")
+            )
+        )
     return issues

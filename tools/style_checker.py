@@ -1,5 +1,6 @@
 import json
 import subprocess
+from core.models import ReviewIssue
 
 def run_ruff(file_path: str) -> list:
     """
@@ -42,16 +43,16 @@ def run_ruff(file_path: str) -> list:
     issues = []
 
     for item in ruff_results:
-        issue = {
-             "type": "style",
-            "source": "ruff",
-            "rule": item["code"],
-            "severity": "low",
-            "line": item["location"]["row"],
-            "column": item["location"]["column"],
-            "message": item["message"]
-        }
-
-        issues.append(issue)
+        issues.append(
+            ReviewIssue(
+                source="ruff",
+                category="quality",
+                rule=item["code"],
+                severity="low",
+                line=item["location"]["row"],
+                column=item["location"]["column"],
+                message=item["message"]
+            )
+        )
 
     return issues

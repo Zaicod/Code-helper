@@ -1,120 +1,76 @@
 from tools.code_reader import read_code
-from tools.syntax_checker import analyze_code_structure
 from tools.rule_checker import check_code_rules
 from tools.style_checker import run_ruff
-from tools.complexity_checker import analyze_complexity
 from tools.security_checker import run_bandit
+from tools.complexity_checker import (
+    analyze_complexity,
+    complexity_to_issues
+)
+
 
 def main():
-	file_path = "data/sample_code.py"
 
-	code = read_code(file_path)
+    file_path = "data/sample_code.py"
 
-	print("=" * 50)
-	print("待审查代码")
-	print("=" * 50)
-	print(code)
+    code = read_code(file_path)
 
-	structure = analyze_code_structure(code)
+    ast_issues = check_code_rules(code)
 
-	print("\n" + "=" * 50)
-	print("代码结构分析")
-	print("=" * 50)
+    ruff_issues = run_ruff(file_path)
 
-	print("Imports:")
-	for item in structure["imports"]:
-		print(
-			f" - {item['name']}"
-			f"(line {item['line']})"
-		)
+    bandit_issues = run_bandit(file_path)
 
-	print("\nFunctions:")
-	for item in structure["functions"]:
-		print(
-			f" - {item['name']}"
-			f"(line {item['line']})"
-		)
+    complexity_results = analyze_complexity(code)
 
-	print("\nClasses:")
-	for item in structure["classes"]:
-		print(
-			f" - {item['name']}"
-			f"(line {item['line']})"
-		)
+    complexity_issues = complexity_to_issues(
+        complexity_results
+    )
 
-	#规则检查
-	issues = check_code_rules(code)
+    all_issues = (
+        ast_issues
+        + ruff_issues
+        + bandit_issues
+        + complexity_issues
+    )
 
-	print("\n" + "=" * 50)
-	print("规则检查")
-	print("=" * 50)
+    print("=" * 60)
+    print("统一代码审查结果")
+    print("=" * 60)
 
-	if not issues:
-		print("未发现问题")
+    if not all_issues:
+        print("未发现问题。")
+        return
 
-	for issue in issues:
-		print(
-            f"[{issue['severity'].upper()}] "
-            f"Line {issue['line']} | "
-            f"{issue['rule']} | "
-            f"{issue['message']}"
+    for issue in all_issues:
+
+        location = (
+            f"Line {issue.line}"
+            if issue.line is not None
+            else "Unknown line"
         )
 
-	#Ruff
-	ruff_issues = run_ruff(file_path)
-	print("\n" + "=" * 50)
-	print("Ruff 静态分析")
-	print("=" * 50)
+        print(
+            f"[{issue.severity.upper()}] "
+            f"{issue.source} | "
+            f"{issue.category} | "
+            f"{location}"
+        )
 
-	if not ruff_issues:
-		print("Ruff 未发现问题")
+        print(
+            f"Rule: {issue.rule}"
+        )
 
-	for issue in ruff_issues:
-		print(
-			f"[{issue['severity'].upper()}] "
-            f"Line {issue['line']}:{issue['column']} | "
-            f"{issue['rule']} | "
-            f"{issue['message']}"
-		)
+        print(
+            f"Problem: {issue.message}"
+        )
 
-	print("\n" + "=" * 50)
-	print("圈复杂度分析")
-	print("=" * 50)
+        if issue.suggestion:
+            print(
+                f"Suggestion: {issue.suggestion}"
+            )
 
-	#radon算函数复杂度
-	complexity_results = analyze_complexity(code)
-
-	if not complexity_results:
-		print("未检测到函数或方法。")
-
-	for item in complexity_results:
-		print(
-			f"{item['name']} | "
-			f"Line {item['line']} | "
-			f"Complexity: {item['complexity']} | "
-			f"Grade: {item['type']}"
-		)
-
-	#Radon
-	bandit_issues = run_bandit(file_path)
-
-	print("\n" + "=" * 50)
-	print("Bandit 安全分析")
-	print("=" * 50)
-
-	if not bandit_issues:
-		print("Bandit 未发现安全问题")
-
-	for issue in bandit_issues:
-		print(
-			f"[{issue['severity'].upper()}] "
-			f"Line {issue['line']} | "
-			f"{issue['rule']} | "
-			f"{issue['message']} | "
-			f"Confidence: "
-			f"{issue['confidence'].upper()}"
-		)
+        print("-" * 60)
 
 
 if __name__ == "__main__":
-	main()
+    main()
