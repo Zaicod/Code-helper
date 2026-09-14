@@ -10,6 +10,14 @@ from core.models import (
     LLMReviewResult,
 )
 
+from openai import (
+    APIConnectionError,
+    APIStatusError,
+    AuthenticationError,
+    BadRequestError,
+    RateLimitError,
+)
+
 
 load_dotenv()
 
@@ -59,7 +67,7 @@ def format_issues(
 def review_code_with_llm(
     code: str,
     review_result: dict
-) -> LLMReviewResult:
+) -> LLMReviewResult | None:
 
     issues_text = format_issues(
         review_result["issues"]
@@ -93,7 +101,6 @@ def review_code_with_llm(
 
 请严格返回 JSON 格式。
 不要输出 Markdown。
-不要输出 ```json。
 不要输出 JSON 之外的任何文字。
 """
 
@@ -134,28 +141,71 @@ def review_code_with_llm(
 }}
 """
 
-    response = client.chat.completions.create(
-        model=MODEL,
-
-        messages=[
-            {
-                "role": "system",
-                "content": system_prompt
-            },
-            {
-                "role": "user",
-                "content": user_prompt
+    try:
+        response = client.chat.completions.create(
+            model=MODEL,
+            messages=[
+                {
+                    "role": "system",
+                    "content": system_prompt
+                },
+                {
+                    "role": "user",
+                    "content": user_prompt
+                }
+            ],
+            response_format={
+                "type": "json_object"
             }
-        ],
+        )
 
-        response_format={
-            "type": "json_object"
-        }
-    )
+    except AuthenticationError:
+        print(
+            "[LLM ERROR] Qwen API Key 无效或认证失败。"
+        )
+        return None
+
+    except RateLimitError:
+        print(
+            "[LLM ERROR] Qwen API 请求过于频繁或额度受限。"
+        )
+        return None
+
+    except APIConnectionError:
+        print(
+            "[LLM ERROR] 无法连接 Qwen API，请检查网络。"
+        )
+        return None
+
+    except BadRequestError as e:
+        print(
+            f"[LLM ERROR] Qwen 请求失败：{e}"
+        )
+        return None
+
+    except APIStatusError as e:
+        print(
+            f"[LLM ERROR] Qwen 服务返回异常状态："
+            f"{e.status_code}"
+        )
+        return None
+
+    except Exception as e:
+        print(
+            f"[LLM ERROR] 未知错误：{e}"
+        )
+        return None
 
     content = response.choices[0].message.content
 
-    data = json.loads(content)
+    try:
+        data = json.loads(content)
+
+    except json.JSONDecodeError:
+        print(
+            "[LLM ERROR] Qwen 返回内容不是合法 JSON。"
+        )
+        return None
 
     issues = []
 
