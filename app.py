@@ -3,6 +3,7 @@ import pandas as pd
 
 from core.reviewer import review_project
 from core.report_generator import generate_project_report
+from core.source_utils import get_code_snippet
 
 st.set_page_config(
     page_title="智能代码审查助手",
@@ -281,9 +282,20 @@ if st.button("开始审查"):
                              """
                         )
 
+                        snippet = get_code_snippet(
+                            file_result["file_path"],
+                            issue.line,
+                            context=3
+                        )
+
+                        st.code(
+                            snippet,
+                            language="text"
+                        )
+
                         if issue.suggestion:
-                            st.markdown(
-                                f"- 建议：{issue.suggestion}"
+                            st.info(
+                                f"建议：{issue.suggestion}"
                             )
 
                         st.divider()
