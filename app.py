@@ -52,7 +52,7 @@ if st.button("开始审查"):
                 "项目概览"
             )
 
-            col1, col2, col3 = st.columns(3)
+            col1, col2, col3, col4 = st.columns(4)
 
             with col1:
 
@@ -80,14 +80,128 @@ if st.button("开始审查"):
                     high_risk
                 )
 
+            with col4:
 
-            st.subheader(
-                "严重程度统计"
+                if result["file_count"] > 0:
+
+                    average_issues = (
+                        result["total_issues"]
+                        / result["file_count"]
+                    )
+
+                else:
+                    average_issues = 0
+
+                st.metric(
+                    "平均问题/文件",
+                    f"{average_issues:.1f}"
+                )
+
+
+            st.subheader("严重程度分布")
+
+            severity_count = result["severity_count"]
+
+            severity_df = pd.DataFrame({
+                "Severity": [
+                    "Critical",
+                    "High",
+                    "Medium",
+                    "Low",
+                    "Info"
+                ],
+                "Count": [
+                    severity_count["critical"],
+                    severity_count["high"],
+                    severity_count["medium"],
+                    severity_count["low"],
+                    severity_count["info"]
+                ]
+            })
+
+            st.bar_chart(
+                severity_df,
+                x="Severity",
+                y="Count"
             )
 
-            st.write(
-                result["severity_count"]
+            st.subheader("文件风险排名")
+
+            file_data = []
+
+            for file_result in result["files"]:
+
+                review = file_result["review_result"]
+
+                file_data.append({
+                    "File": file_result["file_path"],
+                    "Issues": review["total"]
+                })
+
+
+            file_df = pd.DataFrame(
+                file_data
             )
+
+            file_df = file_df.sort_values(
+                by="Issues",
+                ascending=False
+            )
+
+            st.bar_chart(
+                file_df,
+                x="File",
+                y="Issues"
+            )
+
+            st.subheader("问题类别分布")
+
+            category_count = {}
+
+            for file_result in result["files"]:
+
+                review = file_result["review_result"]
+
+                for issue in review["issues"]:
+
+                    category = issue.category
+
+                    category_count[category] = (
+                        category_count.get(category, 0)
+                        + 1
+                    )
+
+
+            category_df = pd.DataFrame(
+                [
+                    {
+                        "Category": category,
+                        "Count": count
+                    }
+                    for category, count
+                    in category_count.items()
+                ]
+            )
+
+
+            if not category_df.empty:
+
+                category_df = category_df.sort_values(
+                    by="Count",
+                    ascending=False
+                )
+
+                st.bar_chart(
+                    category_df,
+                    x="Category",
+                    y="Count"
+                )
+
+            else:
+
+                st.info(
+                    "暂无问题类别数据。"
+                )
 
 
             st.subheader(
