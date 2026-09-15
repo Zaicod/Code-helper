@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 
 from core.reviewer import review_project
-
+from core.report_generator import generate_project_report
 
 st.set_page_config(
     page_title="智能代码审查助手",
@@ -203,6 +203,36 @@ if st.button("开始审查"):
                     "暂无问题类别数据。"
                 )
 
+            st.subheader("问题筛选")
+
+            all_severities = [
+                "critical",
+                "high",
+                "medium",
+                "low",
+                "info"
+            ]
+
+            selected_severities = st.multiselect(
+                "选择严重程度",
+                options=all_severities,
+                default=all_severities
+            )
+
+            all_categories = set()
+
+            for file_result in result["files"]:
+                for issue in file_result["review_result"]["issues"]:
+                    all_categories.add(issue.category)
+
+            all_categories = sorted(all_categories)
+
+            selected_categories = st.multiselect(
+                "选择问题类别",
+                options=all_categories,
+                default=all_categories
+            )
+
 
             st.subheader(
                 "文件审查结果"
@@ -210,44 +240,64 @@ if st.button("开始审查"):
 
             for file_result in result["files"]:
 
-                review = file_result[
-                    "review_result"
-                ]
+                review = file_result["review_result"]
+
+                filtered_issues = []
+
+                for issue in review["issues"]:
+
+                    severity_match = (
+                        issue.severity.lower()
+                        in selected_severities
+                    )
+
+                    category_match = (
+                        issue.category
+                        in selected_categories
+                    )
+
+                    if severity_match and category_match:
+                        filtered_issues.append(issue)
+
+                if not filtered_issues:
+                    continue
 
                 with st.expander(
                     f"{file_result['file_path']} "
-                    f"({review['total']} 个问题)"
+                    f"({len(filtered_issues)} 个匹配问题)"
                 ):
 
-                    if not review["issues"]:
+                    for issue in filtered_issues:
 
-                        st.success(
-                            "该文件未发现明显问题。"
+                        st.markdown(
+                            f"""
+                                **[{issue.severity.upper()}]**
+                                `{issue.rule}`
+
+                                - 来源：`{issue.source}`
+                                - 类别：`{issue.category}`
+                                - 行号：{issue.line}
+                                - 问题：{issue.message}
+                             """
                         )
 
-                    else:
-
-                        for issue in review["issues"]:
-
+                        if issue.suggestion:
                             st.markdown(
-                                f"""
-                                    **[{issue.severity.upper()}]**
-                                    `{issue.rule}`
-
-                                    - 来源：`{issue.source}`
-                                    - 类别：`{issue.category}`
-                                    - 行号：{issue.line}
-                                    - 问题：{issue.message}
-                                 """
+                                f"- 建议：{issue.suggestion}"
                             )
 
-                            if issue.suggestion:
+                        st.divider()
 
-                                st.markdown(
-                                    f"- 建议：{issue.suggestion}"
-                                )
-
-                            st.divider()
+            report_text = generate_project_report(
+                result,
+                "outputs/project_review_report.md"
+            )
+            st.download_button(
+                label="下载 Markdown 审查报告",
+                data=report_text,
+                file_name="project_review_report.md",
+                mime="text/markdown"
+            )
 
 
         except Exception as e:
