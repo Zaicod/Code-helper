@@ -1,59 +1,93 @@
-# 项目名称
-> 一句话描述你的项目
+# CodeReviewAgent
+
+基于 Qwen Tool Calling 的智能代码审查 Agent，面向 Python 工程融合静态代码分析工具与大语言模型语义理解能力，实现代码质量、安全漏洞、复杂度及可维护性等多维度审查。
+
+---
+
 ## 📝 项目简介
-详细介绍你的项目:
-- 解决什么问题？
-- 有什么特色功能？
-- 适用于什么场景？
+
+CodeReviewAgent 是一个面向 Python 项目的智能代码审查系统。
+
+与单纯依赖大语言模型进行代码审查不同，本项目将传统静态分析工具与 Qwen 大语言模型结合，通过 Agent 自主选择分析工具并根据工具执行结果持续进行决策。
+
+主要实现：
+
+- 基于 Python AST 开发自定义规则引擎，检测 `eval`、`exec`、裸异常捕获等潜在风险代码；
+- 设计统一 `ReviewIssue` 数据模型，对 AST、Ruff、Bandit、Radon 等多来源分析结果进行标准化；
+- 集成 Ruff、Bandit、Radon，分别完成代码规范、安全漏洞及圈复杂度分析；
+- 设计 Aggregator 模块，实现问题聚合、严重程度排序及统计；
+- 基于 Qwen OpenAI-compatible API 实现 Tool Calling Agent；
+- 实现 Agent Loop，使模型能够完成：
+
+  `模型决策 → Tool Call → 工具执行 → Observation → 再决策 → Final Answer`
+
+- 设计 `AgentState` 与 Tool Trace，记录工具调用步骤、参数、执行结果及最终回答；
+- 实现 Python 项目级递归扫描和多文件代码审查；
+- 使用 Streamlit 构建 Web Dashboard，实现风险统计、问题筛选、源码定位、AI 综合审查和 Markdown 报告导出。
+
+---
+
 ## ✨ 核心功能
-- [ ] 功能1:描述
-- [ ] 功能2:描述
-- [ ] 功能3:描述
-## 🛠 技术栈
-- HelloAgents框架
-- 使用的智能体范式（如ReAct、Plan-and-Solve等）
-- 使用的工具和API
-- 其他依赖库
-## 🚀 快速开始
-### 环境要求
-- Python 3.10+
-- 其他要求
-### 安装依赖
-pip install -r requirements.txt
-### 配置API密钥
-# 创建.env文件
-cp .env.example .env
-# 编辑.env文件，填入你的API密钥
-### 运行项目
-# 启动Jupyter Notebook
-jupyter lab
-# 打开main.ipynb并运行
-## 📖 使用示例
-展示如何使用你的项目，最好包含代码示例和运行结果。
-## 🎯 项目亮点
-- 亮点1:说明
-- 亮点2:说明
-- 亮点3:说明
-## 📊 性能评估
-16.4.2 编写 requirements.txt
-列出项目所需的所有 Python 依赖：
-16.4.3 开发 Jupyter Notebook
-（1）Notebook 结构建议
-一个好的 Jupyter Notebook 应该包含以下部分：
-如果有评估结果，展示在这里:
-- 准确率:XX%
-- 响应时间:XX秒
-- 其他指标
-## 🔮 未来计划
-- [ ] 待实现的功能1
-- [ ] 待实现的功能2
-- [ ] 待优化的部分
-## 🤝 贡献指南
-欢迎提出Issue和Pull Request！
-## 📄 许可证
-MIT License
-## 👤 作者
-- GitHub: [@你的用户名](https://github.com/你的用户名)
-- Email: 你的邮箱（可选）
-## 🙏 致谢
-感谢Datawhale社区和Hello-Agents项目！
+
+- [x] **多工具静态代码分析**
+
+  集成 AST、Ruff、Bandit、Radon，对 Python 项目进行代码质量、安全性及复杂度分析。
+
+- [x] **Qwen Tool-Calling Agent**
+
+  Agent 根据用户任务自主决定是否调用源码读取、Ruff、Bandit、复杂度分析等工具，而非固定执行全部工具。
+
+- [x] **Agent Loop 与状态管理**
+
+  支持多轮 Tool Calling，并通过 `AgentState` 记录工具调用过程、Observation 和最终回答。
+
+- [x] **项目级代码审查**
+
+  递归扫描 Python 项目中的 `.py` 文件，对多个源文件进行统一分析和风险统计。
+
+- [x] **Web Dashboard**
+
+  提供项目概览、严重程度分布、文件风险排名、问题类别统计、问题筛选及源码片段定位。
+
+- [x] **AI 项目综合审查**
+
+  使用 Qwen 对静态分析结果进行项目级语义分析，并给出总体评分、风险总结和改进建议。
+
+- [x] **审查报告导出**
+
+  自动生成 Markdown 格式项目代码审查报告。
+
+---
+
+## 🏗 系统架构
+
+```text
+                     User Task
+                         │
+                         ▼
+                 Qwen Review Agent
+                         │
+                  Tool Selection
+                         │
+          ┌──────────────┼──────────────┐
+          │              │              │
+          ▼              ▼              ▼
+      read_code         Ruff          Bandit
+          │                              │
+          └──────────────┬───────────────┘
+                         │
+                       Radon
+                         │
+                         ▼
+                    Observation
+                         │
+                         ▼
+                    Agent State
+                         │
+                  Need more tools?
+                    │         │
+                   Yes        No
+                    │         │
+                    └────┐    ▼
+                         │ Final Answer
+                         └───────
