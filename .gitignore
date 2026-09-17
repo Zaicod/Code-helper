@@ -1,0 +1,29 @@
+# 密钥环境变量
+.env
+.env.local
+.env.development
+.env.production
+!.env.example
+
+# Python字节码
+__pycache__/
+*.py[cod]
+
+# Ruff静态检查缓存
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+
+# 虚拟环境
+.venv/
+venv/
+
+# 构建输出
+build/
+dist/
+
+# IDE配置
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
